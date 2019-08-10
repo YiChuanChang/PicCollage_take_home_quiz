@@ -6,7 +6,7 @@ import os
 from ops import *
 
 batch_size = 64
-total_epoch = 51
+total_epoch = 51 
 checkpoint_dir = 'checkpoint'
 
 def load_image(image_path, label):
@@ -16,6 +16,7 @@ def load_image(image_path, label):
 	image = tf.cast(image, tf.float32)
 	return image, label, image_path
 
+# define the model
 def network(image, scope='network', reuse=None):
 
 	with tf.variable_scope(scope, reuse=reuse):
@@ -55,7 +56,7 @@ def network(image, scope='network', reuse=None):
 
 	return x
 
-
+# define the tensorflow graph
 graph = tf.Graph()
 with graph.as_default():
 	file_names = tf.placeholder(dtype = tf.string, shape=(None,))
@@ -70,8 +71,9 @@ with graph.as_default():
 	batch_images, batch_labels, batch_paths = iterator.get_next()
 	dataset_initialize = iterator.make_initializer(batched_data)
 	
+	# get prediction form the network
 	batch_predictions = network(batch_images)
-	batch_predictions = tf.reshape(batch_predictions, [-1])
+	batch_predictions = tf.reshape(batch_predictions, [-1]) # reshape to fit the shape of batch_label
 	tf.losses.mean_squared_error(labels=batch_labels, predictions=batch_predictions)
 	loss = tf.losses.get_total_loss()
 	train_loss_s = tf.summary.scalar("train_loss", loss)
@@ -80,8 +82,8 @@ with graph.as_default():
 	test_loss_merge = tf.summary.merge([test_loss_s])
 
 	# using ADAM optimizer
-	optimizer_1 = tf.train.AdamOptimizer(learning_rate=0.001)
-	optimizer_2 = tf.train.AdamOptimizer(learning_rate=0.0001)
+	optimizer_1 = tf.train.AdamOptimizer(learning_rate=0.001) # for 0~14th epoch
+	optimizer_2 = tf.train.AdamOptimizer(learning_rate=0.0001) # for 15th~50th epoch
 	train_op_1 = optimizer_1.minimize(loss)
 	train_op_2 = optimizer_2.minimize(loss)
 
@@ -94,6 +96,8 @@ def train(sess, train_set, train_label, writer, epoch):
 	print('############## Training ############## ')
 	i = 0
 	average_loss = 0
+
+	# iterate all training data
 	while True:
 		try:
 			i = i+1
@@ -103,6 +107,7 @@ def train(sess, train_set, train_label, writer, epoch):
 			else:
 				loss_, train_loss_merge_, _ = sess.run([loss, train_loss_merge, train_op_2])  
 
+			# visualize the loss (tensorboard)
 			writer.add_summary(train_loss_merge_, epoch*(int(105000/batch_size)+1)+i)
 			average_loss += loss_  
 			if(i%100==0):	
@@ -121,10 +126,13 @@ def test(sess, test_set, test_label, writer, epoch):
 	print('############## Testing ############## ')
 	i = 0
 	average_loss = 0
+
+	# iterate all testing data
 	while True:
 		try:
 			i = i+1
 			loss_, test_loss_merge_, labels_, paths_, prediction_ = sess.run([loss, test_loss_merge, batch_labels, batch_paths, batch_predictions])   
+			# visualize the loss (tensorboard)
 			writer.add_summary(test_loss_merge_, (epoch/5)*(int(45000/batch_size)+1)+i)
 			average_loss += loss_
 			if(i%100==0):
@@ -169,6 +177,7 @@ def define_train_n_test_set(response_csv):
 	return train_set, train_label, test_set, test_label
 
 def read_csv_file(filename):
+
 	with open(filename, newline='') as csvfile:
 		reponses_csv = csv.reader(csvfile, delimiter=',')
 		reponses_csv = list(reponses_csv)
@@ -207,6 +216,7 @@ def main():
 		print('Total Variable Numbers:'+ str(total_parameters))
 
 		test(sess, test_set, test_label, writer, epoch=0)
+
 		# Train the network
 		for epoch in range(total_epoch):
 			print('Now in epoch '+str(epoch))

@@ -5,6 +5,10 @@ import tensorflow.contrib.slim as slim
 weight_init = tf_contrib.layers.variance_scaling_initializer() # kaming init for encoder / decoder
 weight_regularizer = tf_contrib.layers.l2_regularizer(scale=0.0001)
 
+##################################################################################
+# Normalization function
+##################################################################################
+
 def batch_norm(x, scope=None):
 	return tf.contrib.layers.batch_norm(x, scope=scope)
 
